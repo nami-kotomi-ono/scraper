@@ -1,7 +1,7 @@
 from pathlib import Path
 from datetime import datetime
 import csv
-from .analyze_price import analyze_prices, format_price_analysis
+from .price_analysis import format_price_analysis
 
 def setup_results_dir():
     """結果を保存するディレクトリをセットアップする関数"""

@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from app.models.price_analysis import PriceAnalysis
+from app.models.price_stats import PriceAnalysis
 
 def analyze_prices(items: List[Dict[str, Any]]) -> PriceAnalysis:
     """商品リストから価格分析を行う関数"""

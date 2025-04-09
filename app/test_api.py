@@ -3,7 +3,7 @@ from app.api.items import search_items, SearchRequest
 
 async def test_search():
     # テスト用のリクエストを作成
-    request = SearchRequest(keyword="テスト")
+    request = SearchRequest(keyword="測量用プリズム")
     
     # 検索を実行
     response = await search_items(request)
