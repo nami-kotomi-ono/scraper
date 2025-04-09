@@ -1,11 +1,50 @@
 import random
-import os
-from browser import setup_browser, scroll_page
-from utils import save_to_file
+from pathlib import Path
+from playwright.async_api import async_playwright
+from .save import save_to_file
+from app.config.settings import get_settings
 from dotenv import load_dotenv
 
 # 環境変数の読み込み
 load_dotenv()
+settings = get_settings()
+
+def setup_results_dir() -> Path:
+    """結果を保存するディレクトリをセットアップする"""
+    results_dir = Path(settings.results_dir)
+    results_dir.mkdir(exist_ok=True)
+    return results_dir
+
+async def setup_browser():
+    """ブラウザのセットアップを行う関数"""
+    playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(headless=False)
+    
+    context = await browser.new_context(
+        user_agent=settings.user_agent,
+        viewport=settings.viewport,
+        locale=settings.locale,
+        timezone_id=settings.timezone_id
+    )
+    
+    cookies = [
+        {
+            'name': settings.cookie_name,
+            'value': settings.cookie_value,
+            'domain': settings.cookie_domain,
+            'path': settings.cookie_path
+        }
+    ]
+    await context.add_cookies(cookies)
+    
+    return playwright, browser, context
+
+async def scroll_page(page):
+    """ページをスクロールして商品を読み込む関数"""
+    scroll_points = settings.scroll_points
+    for point in scroll_points:
+        await page.evaluate(f"window.scrollTo(0, document.body.scrollHeight*{point})")
+        await page.wait_for_timeout(settings.wait_time_between_scrolls)
 
 async def scrape_items(keyword):
     """商品をスクレイピングする関数"""
@@ -15,20 +54,16 @@ async def scrape_items(keyword):
     page = await context.new_page()
     
     try:
-        # 検索URLにアクセス
-        search_url = os.getenv('SEARCH_URL_TEMPLATE').format(keyword=keyword)
+        search_url = settings.search_url_template.format(keyword=keyword)
         await page.goto(search_url)
-        
-        # ランダムな時間待機（ボット対策）
-        await page.wait_for_timeout(random.randint(2000, 5000))
-        await scroll_page(page)
-                
-        # 商品一覧取得
-        selector = os.getenv('ITEM_CELL_SELECTOR')
-        items = await page.query_selector_all(selector)
         page_number = 1
         
         while True:
+            await page.wait_for_timeout(random.randint(settings.min_wait_time, settings.max_wait_time))
+            await page.wait_for_selector(settings.item_cell_selector, timeout=settings.page_load_timeout)
+            await scroll_page(page)
+            items = await page.query_selector_all(settings.item_cell_selector)
+
             if not items:
                 print("商品が見つかりませんでした")
                 break
@@ -38,11 +73,11 @@ async def scrape_items(keyword):
             for index, item in enumerate(items):
                 try:
                     # 商品名を取得
-                    name_element = await item.query_selector(os.getenv('ITEM_NAME_SELECTOR'))
+                    name_element = await item.query_selector(settings.item_name_selector)
                     name = await name_element.inner_text() if name_element else None
                     
                     # 価格を取得
-                    price_element = await item.query_selector(os.getenv('ITEM_PRICE_SELECTOR'))
+                    price_element = await item.query_selector(settings.item_price_selector)
                     price = await price_element.inner_text() if price_element else None
                     
                     if name and price:
@@ -59,7 +94,7 @@ async def scrape_items(keyword):
                     print(f"⚠️ 商品{index + 1}: 処理中にエラーが発生: {e}")
             
             # 次ページボタンを探す
-            next_button = await page.query_selector(os.getenv('NEXT_BUTTON_SELECTOR'))
+            next_button = await page.query_selector(settings.next_button_selector)
             
             # ページごとの結果を保存
             save_to_file(page_results, keyword, page_number, 
@@ -73,15 +108,6 @@ async def scrape_items(keyword):
                 
             print("\n⏭️ 次ページに遷移します...")
             await next_button.click()
-            
-            try:
-                await page.wait_for_selector(os.getenv('ITEM_CELL_SELECTOR'), timeout=10000)
-                await scroll_page(page)
-            except Exception as e:
-                print(f"⚠️ ページ読み込み待機中にエラーが発生: {e}")
-            
-            # 商品を取得
-            items = await page.query_selector_all(selector)
             page_number += 1
             
     finally:
