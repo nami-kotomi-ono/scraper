@@ -10,7 +10,7 @@ def setup_results_dir():
     results_dir.mkdir(exist_ok=True)
     return results_dir
 
-def save_to_file(data, keyword, page_number=None, is_first_page=False, is_last_page=False, all_items=None):
+def save_to_file(data, keyword, page_number=None, is_first_page=False, is_last_page=False, all_items=None, analysis=None):
     """データをCSVファイルに保存する関数"""
     if not data:
         print("⚠️ 保存するデータがありません")
@@ -40,12 +40,9 @@ def save_to_file(data, keyword, page_number=None, is_first_page=False, is_last_p
             writer.writerow([item['name'], item['price']])
         
         # 最後のページの場合、全商品の価格分析を追加
-        if is_last_page and all_items:
-            # 価格分析
-            analysis = analyze_prices(all_items)
+        if is_last_page and analysis:
+            # 分析結果をCSVに追記
             analysis_rows = format_price_analysis(analysis)
-            
-            # 書き込み
             for row in analysis_rows:
                 writer.writerow(row)
                 

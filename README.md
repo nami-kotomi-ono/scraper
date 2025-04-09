@@ -18,24 +18,39 @@ git clone [リポジトリURL]
 cd [リポジトリ名]
 ```
 
-2. 依存パッケージのインストール
+2. 仮想環境の作成
 ```bash
-pip install -r requirements.txt
+`python3 -m venv venv`
 ```
 
-3. Playwrightのインストール
+3. 仮想環境を有効化
+```bash
+`source venv/bin/activate` 
+```
+
+4. 依存パッケージのインストール
+```bash
+pip3 install -r requirements.txt
+```
+
+5. Playwrightのインストール
 ```bash
 playwright install
 ```
 
-## 使い方
+※仮想環境を抜ける
+```bash
+deactivate
+```
 
-1. プログラムを実行（コマンドから動作確認する）
+## 使い方（コマンドから動作確認する場合）
+
+1. scraper/app/test_api.pyのkeywordに検索キーワードを入力
+
+2. プログラムを実行
 ```bash
 python3 -m app.test_api
 ```
-
-2. 検索キーワードを入力
 3. 結果は `results` ディレクトリにCSVファイルとして保存されます
 
 ## カスタマイズ方法
@@ -44,39 +59,63 @@ python3 -m app.test_api
 - ブラウザ設定（ユーザーエージェントなど）
 - クッキー設定
 - セレクタ設定（商品一覧、商品名、価格、次ページボタンなど）
-- メルカリの検索URL
+- 検索URL
 
 ## 注意事項
 
 - メルカリの利用規約に従って使用してください
 - 過度なアクセスは避けてください
 - 取得したデータの利用は自己責任でお願いします
-- 本ツールは教育目的で公開されています 
+- 本ツールは教育目的で公開しています 
 
 🎯 目的
-検索キーワードを受け取り、メルカリの商品情報と価格をスクレイピングしてCSVに書き出し、フロントにCSVファイルとステータスコードを返すFastAPIのAPIを構築する。
+検索キーワードを受け取り、メルカリの商品情報と価格をスクレイピングしてCSVに書き出し、フロントにCSVファイル、分析結果、ステータスコードを返すFastAPIのAPIを構築する。
 
 🧩 使用ライブラリ
 - FastAPI：APIサーバー構築
 - Playwright：メルカリページのスクレイピング
-- csv（標準）：CSV出力
-- uvicorn：ローカル開発サーバー起動用
 
-📥 入力
-HTTPメソッド：GET
+## 入力
+HTTPメソッド：POST  # GETからPOSTに修正
 
-エンドポイント：/scrape
+エンドポイント：/api/v1/search  # /scrapeから修正
 
-クエリパラメータ：
-- keyword: メルカリで検索するキーワード（例：iPhone）
+リクエストボディ：
+```json
+{
+    "keyword": "iPhone"
+}
+```
 
-📤 出力
+## 出力
 レスポンス：
-
-200 OK：CSVファイル（text/csv）をダウンロード
-
-400 Bad Requestや500 Internal Server Errorは適切なバリデーション・エラーハンドリングで対応予定
+```json
+{
+    "csv_url": "/api/v1/download/iPhone.csv",
+    "analysis": {
+        "lowest_price": {
+            "price": "1000",
+            "name": "商品名"
+        },
+        "highest_price": {
+            "price": "100000",
+            "name": "商品名"
+        },
+        "average_price": 50000,
+        "median_price": 45000,
+        "total_items": 100
+    }
+}
+```
+```
 
 CSVの内容：
 - 商品名（Title）
 - 価格（Price）
+
+分析結果内容：
+- 最低価格
+- 最高価格
+- 平均価格
+- 中央値
+- 取得商品数

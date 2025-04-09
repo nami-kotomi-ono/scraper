@@ -97,10 +97,14 @@ async def scrape_items(keyword):
             next_button = await page.query_selector(settings.next_button_selector)
             
             # ページごとの結果を保存
-            save_to_file(page_results, keyword, page_number, 
-                        is_first_page=(page_number == 1),
-                        is_last_page=(not next_button),
-                        all_items=all_results if not next_button else None)
+            save_to_file(
+                data=page_results,
+                keyword=keyword,
+                page_number=page_number,
+                is_first_page=(page_number == 1),
+                is_last_page=False,  # 分析結果の追記はitems.pyで行うためFalse
+                all_items=None  # 分析結果の追記はitems.pyで行うためNone
+            )
             
             if not next_button:
                 print("\nこれ以上ページがありません")
