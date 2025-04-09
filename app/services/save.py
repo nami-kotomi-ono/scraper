@@ -1,12 +1,12 @@
 from pathlib import Path
 from datetime import datetime
 import csv
-from analyzer import analyze_prices, format_price_analysis
+from .analyze_price import analyze_prices, format_price_analysis
 
 def setup_results_dir():
     """結果を保存するディレクトリをセットアップする関数"""
-    current_dir = Path(__file__).parent
-    results_dir = current_dir / "results"
+    root_dir = Path(__file__).parent.parent.parent
+    results_dir = root_dir / "results"
     results_dir.mkdir(exist_ok=True)
     return results_dir
 
