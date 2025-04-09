@@ -17,20 +17,19 @@ sdist/
 var/
 wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-env/
-ENV/
+# 環境変数
+.env
 
-# IDE
+# スクレイピング結果
+results/
+
+# その他
+.DS_Store
 .idea/
 .vscode/
-*.swp
-*.swo
+*.log
 
-# Project specific
-results/
-.env 
+# 仮想環境
+venv/

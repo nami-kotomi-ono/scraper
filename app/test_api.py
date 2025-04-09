@@ -1,33 +1,24 @@
 import asyncio
-from .api.items import search_items
-from pydantic import BaseModel
-from pathlib import Path
+from app.api.items import search_items, SearchRequest
 
 async def test_search():
-    """APIエンドポイントのテスト実行"""
-    # テストリクエストの作成
-    class TestRequest(BaseModel):
-        keyword: str
+    # テスト用のリクエストを作成
+    request = SearchRequest(keyword="ここに検索キーワードを入力")
     
-    # キーワードの入力を受け付ける
-    keyword = input("検索キーワードを入力してください: ")
-    request = TestRequest(keyword=keyword)
+    # 検索を実行
+    response = await search_items(request)
     
-    try:
-        # APIエンドポイントの実行
-        await search_items(request)
-        
-        # 結果ファイルのパスを構築（プロジェクトルートの results ディレクトリ）
-        root_dir = Path(__file__).parent.parent
-        file_path = root_dir / "results" / f"{keyword}.csv"
-        
-        if file_path.exists():
-            print(f"\n✅ CSVファイルが正常に保存されました: {file_path}")
-        else:
-            print(f"\n❌ CSVファイルが見つかりません: {file_path}")
-            
-    except Exception as e:
-        print(f"エラーが発生しました: {e}")
+    # レスポンスを表示
+    print("\n=== CSVファイルのURL ===")
+    print(response["csv_url"])
+    
+    print("\n=== 価格分析結果 ===")
+    analysis = response["analysis"]
+    print(f"最低価格: ¥{analysis['lowest_price']['price']} - {analysis['lowest_price']['name']}")
+    print(f"最高価格: ¥{analysis['highest_price']['price']} - {analysis['highest_price']['name']}")
+    print(f"平均価格: ¥{analysis['average_price']:,}")
+    print(f"中央値: ¥{analysis['median_price']:,}")
+    print(f"取得商品数: {analysis['total_items']}件")
 
 if __name__ == "__main__":
     asyncio.run(test_search()) 
