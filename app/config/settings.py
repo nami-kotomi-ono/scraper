@@ -24,9 +24,9 @@ class Settings:
     cookie_path: str = "/"
 
     # ページ読み込みの設定
-    page_load_timeout: int = 20000
-    min_wait_time: int = 2000
-    max_wait_time: int = 5000
+    page_load_timeout: int = 30000
+    min_wait_time: int = 3000
+    max_wait_time: int = 7000
 
     # スクロールの設定
     scroll_points: list[float] = [1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, 1]
