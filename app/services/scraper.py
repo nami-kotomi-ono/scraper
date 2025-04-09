@@ -62,11 +62,13 @@ async def scrape_items(keyword: str, max_pages: int = None, settings: Settings =
         settings = get_settings()
         
     all_results = []  # 全ページの商品情報用
-    
-    playwright, browser, context = await setup_browser()
-    page = await context.new_page()
+    playwright = None
+    browser = None
     
     try:
+        playwright, browser, context = await setup_browser()
+        page = await context.new_page()
+        
         search_url = settings.search_url_template.format(keyword=keyword)
         await page.goto(search_url)
         page_number = 1
@@ -151,7 +153,9 @@ async def scrape_items(keyword: str, max_pages: int = None, settings: Settings =
         return all_results
         
     finally:
-        await browser.close()
-        await playwright.stop()
+        if browser:
+            await browser.close()
+        if playwright:
+            await playwright.stop()
         
     return all_results 

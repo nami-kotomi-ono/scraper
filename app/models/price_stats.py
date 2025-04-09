@@ -16,7 +16,28 @@ class PriceAnalysis:
             return None
             
         # 価格を数値に変換してリスト化
-        prices = [int(item['price'].replace(',', '')) for item in items]
+        valid_prices = []
+        valid_items = []
+        
+        for item in items:
+            try:
+                # 価格が数値とカンマのみで構成されているか確認
+                price_without_comma = item['price'].replace(',', '')
+                if not price_without_comma.isdigit():
+                    continue  # 数値とカンマ以外の文字が含まれている場合はスキップ
+                    
+                # カンマを除去して数値に変換
+                price = int(price_without_comma)
+                valid_prices.append(price)
+                valid_items.append(item)
+            except (ValueError, AttributeError):
+                continue  # 不正な価格形式はスキップ
+                
+        if not valid_prices:
+            return None
+            
+        prices = valid_prices
+        items = valid_items
         prices.sort()  # 中央値計算のためにソート
         
         lowest_item = items[prices.index(min(prices))]
