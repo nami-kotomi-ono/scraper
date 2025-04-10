@@ -2,7 +2,7 @@ import pytest
 import os
 from pathlib import Path
 from app.services.scraper import scrape_items
-from app.services.csv_saver import save_to_file, setup_results_dir
+from app.services.file_manager import save_to_file, setup_results_dir
 from app.config.settings import Settings
 
 @pytest.fixture

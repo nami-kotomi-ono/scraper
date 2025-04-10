@@ -1,7 +1,7 @@
 import random
 from pathlib import Path
 from playwright.async_api import async_playwright
-from .csv_saver import save_to_file
+from .file_manager import save_to_file
 from app.config.settings import Settings, get_settings
 from dotenv import load_dotenv
 from typing import List, Dict

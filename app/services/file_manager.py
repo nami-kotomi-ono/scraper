@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 from .price_analysis import format_price_analysis
 
@@ -9,6 +9,31 @@ def setup_results_dir():
     results_dir = root_dir / "results"
     results_dir.mkdir(exist_ok=True)
     return results_dir
+
+def cleanup_files(keyword: str):
+    """指定されたキーワードに関連するファイルをクリーンアップ"""
+    results_dir = setup_results_dir()
+    now = datetime.now()
+    
+    # 同じキーワードのファイルを検索
+    keyword_files = list(results_dir.glob(f"{keyword}*.csv"))
+    
+    # 古いファイルを検索（1時間以上経過）
+    old_files = [
+        file for file in results_dir.glob("*.csv")
+        if datetime.fromtimestamp(file.stat().st_mtime) < now - timedelta(hours=1)
+    ]
+    
+    # 削除対象のファイルを結合（重複を除く）
+    files_to_delete = set(keyword_files + old_files)
+    
+    # ファイルを削除
+    for file in files_to_delete:
+        try:
+            file.unlink()
+            print(f"ファイルを削除しました: {file}")
+        except Exception as e:
+            print(f"ファイル削除エラー: {e}")
 
 def save_to_file(data, keyword, page_number=None, is_first_page=False, is_last_page=False, all_items=None, analysis=None):
     """データをCSVファイルに保存する関数"""
