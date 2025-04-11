@@ -10,6 +10,11 @@
 - CSVファイルへの保存
 - ページネーション対応（全ページの商品情報を取得）
 
+## 使用ライブラリ
+
+- FastAPI：APIサーバー構築
+- Playwright：メルカリページのスクレイピング
+
 ## インストール方法
 
 1. リポジトリをクローン
@@ -20,12 +25,12 @@ cd [リポジトリ名]
 
 2. 仮想環境の作成
 ```bash
-`python3 -m venv venv`
+python3 -m venv venv
 ```
 
 3. 仮想環境を有効化
 ```bash
-`source venv/bin/activate` 
+source venv/bin/activate
 ```
 
 4. 依存パッケージのインストール
@@ -43,15 +48,90 @@ playwright install
 deactivate
 ```
 
-## 使い方（コマンドから動作確認する場合）
-
-1. scraper/app/test_api.pyのkeywordに検索キーワードを入力
-
-2. プログラムを実行
+## APIサーバーの起動
 ```bash
-python3 -m app.test_api
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-3. 結果は `results` ディレクトリにCSVファイルとして保存されます
+
+## API仕様
+
+### 商品検索
+- 入力
+* HTTPメソッド：POST 
+
+* エンドポイント：/api/v1/search  
+
+* リクエストボディ：
+```json
+{
+    "keyword": "iPhone"
+}
+```
+
+- 出力
+* レスポンス：
+```json
+{
+    "analysis": {
+        "lowest_price": {
+            "price": "1000",
+            "name": "商品名"
+        },
+        "highest_price": {
+            "price": "100000",
+            "name": "商品名"
+        },
+        "average_price": 50000,
+        "median_price": 45000,
+        "total_items": 100
+    },
+    "error": null
+}
+```
+- エラー時は `analysis` が `null` になり、`error` にエラーメッセージが設定されます。
+
+### CSVファイルダウンロード
+- 入力
+* HTTPメソッド：GET 
+* エンドポイント: `/api/v1/download/{keyword}.csv`
+
+- 出力
+* レスポンスヘッダー:
+```json
+{
+    "Content-Type": "text/csv",
+    "Content-Disposition": "attachment; filename*=UTF-8''{keyword}.csv",
+    "Access-Control-Expose-Headers": "Content-Disposition"
+}
+```
+* レスポンスボディ: CSVファイル
+
+## テスト実行方法
+
+### すべてのテストを実行
+```bash
+pytest
+```
+
+### 特定のテストを実行
+```bash
+# 統合テストのみ実行
+pytest tests/integration/
+
+# ユニットテストのみ実行
+pytest tests/unit/
+
+# 特定のテストファイルを実行
+pytest tests/integration/test_scraper_flow.py
+
+# 特定のテスト関数を実行
+pytest tests/unit/test_scraper.py::test_scrape_items_multiple_keywords
+```
+
+### テストカバレッジの確認
+```bash
+pytest --cov=app
+```
 
 ## カスタマイズ方法
 
@@ -66,56 +146,4 @@ python3 -m app.test_api
 - メルカリの利用規約に従って使用してください
 - 過度なアクセスは避けてください
 - 取得したデータの利用は自己責任でお願いします
-- 本ツールは教育目的で公開しています 
-
-🎯 目的
-検索キーワードを受け取り、メルカリの商品情報と価格をスクレイピングしてCSVに書き出し、フロントにCSVファイル、分析結果、ステータスコードを返すFastAPIのAPIを構築する。
-
-🧩 使用ライブラリ
-- FastAPI：APIサーバー構築
-- Playwright：メルカリページのスクレイピング
-
-## 入力
-HTTPメソッド：POST  # GETからPOSTに修正
-
-エンドポイント：/api/v1/search  # /scrapeから修正
-
-リクエストボディ：
-```json
-{
-    "keyword": "iPhone"
-}
-```
-
-## 出力
-レスポンス：
-```json
-{
-    "csv_url": "/api/v1/download/iPhone.csv",
-    "analysis": {
-        "lowest_price": {
-            "price": "1000",
-            "name": "商品名"
-        },
-        "highest_price": {
-            "price": "100000",
-            "name": "商品名"
-        },
-        "average_price": 50000,
-        "median_price": 45000,
-        "total_items": 100
-    }
-}
-```
-```
-
-CSVの内容：
-- 商品名（Title）
-- 価格（Price）
-
-分析結果内容：
-- 最低価格
-- 最高価格
-- 平均価格
-- 中央値
-- 取得商品数
+- 本ツールは教育目的で公開しています

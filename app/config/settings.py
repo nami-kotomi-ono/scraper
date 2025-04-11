@@ -1,4 +1,22 @@
-class Settings:
+from pydantic_settings import BaseSettings
+from typing import List
+import os
+from dotenv import load_dotenv
+
+# 環境変数を読み込む
+load_dotenv()
+
+class Settings(BaseSettings):
+    # アプリケーション設定
+    app_host: str = os.getenv("APP_HOST", "0.0.0.0")
+    app_port: int = int(os.getenv("APP_PORT", "8000"))
+
+    # CORS設定
+    cors_origins: List[str] = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    cors_credentials: bool = os.getenv("CORS_CREDENTIALS", "true").lower() == "true"
+    cors_methods: List[str] = os.getenv("CORS_METHODS", "GET,POST").split(",")
+    cors_headers: List[str] = os.getenv("CORS_HEADERS", "*").split(",")
+
     # メルカリの設定
     search_url_template: str = "https://jp.mercari.com/search?keyword={keyword}"
     item_cell_selector: str = "li[data-testid='item-cell']"
@@ -18,20 +36,25 @@ class Settings:
     timezone_id: str = 'Asia/Tokyo'
 
     # クッキー設定
-    cookie_name: str = "mercari_accept_cookie"
-    cookie_value: str = "1"
-    cookie_domain: str = ".mercari.com"
-    cookie_path: str = "/"
+    cookie_name: str = os.getenv("COOKIE_NAME", "mercari_accept_cookie")
+    cookie_value: str = os.getenv("COOKIE_VALUE", "1")
+    cookie_domain: str = os.getenv("COOKIE_DOMAIN", ".mercari.com")
+    cookie_path: str = os.getenv("COOKIE_PATH", "/")
 
     # ページ読み込みの設定
-    page_load_timeout: int = 20000
-    min_wait_time: int = 2000
-    max_wait_time: int = 5000
+    page_load_timeout: int = 30000
+    min_wait_time: int = 3000
+    max_wait_time: int = 7000
 
     # スクロールの設定
     scroll_points: list[float] = [1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, 1]
     wait_time_between_scrolls: int = 2000
 
+    model_config = {
+        "extra": "allow",
+        "env_file": ".env",
+        "case_sensitive": True
+    }
 
 def get_settings() -> Settings:
     return Settings() 
