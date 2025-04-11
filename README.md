@@ -55,8 +55,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## API仕様
 
-### 商品検索
-- 入力
+### 商品検索API
+#### 入力
 * HTTPメソッド：POST 
 
 * エンドポイント：/api/v1/search  
@@ -68,7 +68,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 }
 ```
 
-- 出力
+#### 出力
 * レスポンス：
 ```json
 {
@@ -90,12 +90,12 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 - エラー時は `analysis` が `null` になり、`error` にエラーメッセージが設定されます。
 
-### CSVファイルダウンロード
-- 入力
+### CSVファイルダウンロードAPI
+#### 入力
 * HTTPメソッド：GET 
 * エンドポイント: `/api/v1/download/{keyword}.csv`
 
-- 出力
+#### 出力
 * レスポンスヘッダー:
 ```json
 {
