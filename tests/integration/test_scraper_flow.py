@@ -126,3 +126,26 @@ async def test_scrape_and_save_with_analysis(test_keyword, cleanup_test_files):
     
     print(f"取得商品数: {len(items)}件")
     print("test_scrape_and_save_with_analysis_success")
+
+@pytest.mark.asyncio
+async def test_csv_file_deletion(test_keyword):
+    """CSVファイルの削除処理のテスト"""
+    print("test_csv_file_deletion")
+    settings = Settings()
+    max_pages = 1
+
+    # スクレイピング実行
+    items = await scrape_items(test_keyword, max_pages, settings)
+    assert len(items) > 0, "商品が見つかりませんでした"
+
+    # ファイルの存在確認
+    results_dir = setup_results_dir()
+    test_file = results_dir / f"{test_keyword}.csv"
+    assert test_file.exists()
+
+    # ファイルの削除
+    if test_file.exists():
+        test_file.unlink()
+    assert not test_file.exists(), "ファイルが削除されていません"
+
+    print("test_csv_file_deletion_success")

@@ -33,3 +33,6 @@ results/
 
 # 仮想環境
 venv/
+
+# テストカバレッジ
+.coverage
