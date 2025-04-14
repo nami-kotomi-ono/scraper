@@ -10,41 +10,32 @@ def setup_results_dir():
     results_dir.mkdir(exist_ok=True)
     return results_dir
 
-def cleanup_files(keyword: str):
+def cleanup_files():
     """指定されたキーワードに関連するファイルをクリーンアップ"""
     results_dir = setup_results_dir()
     now = datetime.now()
-    
-    # 同じキーワードのファイルを検索
-    keyword_files = list(results_dir.glob(f"{keyword}*.csv"))
-    
+        
     # 古いファイルを検索（1時間以上経過）
     old_files = [
         file for file in results_dir.glob("*.csv")
         if datetime.fromtimestamp(file.stat().st_mtime) < now - timedelta(hours=1)
     ]
-    
-    # 削除対象のファイルを結合（重複を除く）
-    files_to_delete = set(keyword_files + old_files)
-    
+        
     # ファイルを削除
-    for file in files_to_delete:
+    for file in old_files:
         try:
             file.unlink()
             print(f"ファイルを削除しました: {file}")
         except Exception as e:
             print(f"ファイル削除エラー: {e}")
 
-def save_to_file(data, keyword, page_number=None, is_first_page=False, is_last_page=False, all_items=None, analysis=None):
+def save_to_file(data, keyword, filename, is_first_page=False, is_last_page=False, analysis=None):
     """データをCSVファイルに保存する関数"""
     if not data:
         print("⚠️ 保存するデータがありません")
         return
         
-    # 結果ディレクトリのセットアップ
     results_dir = setup_results_dir()
-    
-    filename = f"{keyword}.csv"
     filepath = results_dir / filename
     
     # ファイルの書き込みモードを決定（初回は新規作成、それ以外は追記）
@@ -73,5 +64,5 @@ def save_to_file(data, keyword, page_number=None, is_first_page=False, is_last_p
                 
     if is_first_page:
         print(f"結果ファイルを作成しました: {filepath}")
-    print(f"ページ {page_number if page_number else '1'} の商品情報を保存しました（{len(data)}件）")
+    print(f"ページ {filename} の商品情報を保存しました（{len(data)}件）")
 

@@ -47,11 +47,12 @@ async def scroll_page(page):
         await page.evaluate(f"window.scrollTo(0, document.body.scrollHeight*{point})")
         await page.wait_for_timeout(settings.wait_time_between_scrolls)
 
-async def scrape_items(keyword: str, max_pages: int = None, settings: Settings = None) -> List[Dict[str, str]]:
+async def scrape_items(keyword: str, filename: str, max_pages: int = None, settings: Settings = None) -> List[Dict[str, str]]:
     """商品をスクレイピングする関数
     
     Args:
         keyword (str): 検索キーワード
+        filename (str): 保存するファイル名
         max_pages (int, optional): 取得する最大ページ数。Noneの場合は全ページ取得。デフォルトはNone。
         settings (Settings, optional): 設定オブジェクト。Noneの場合はデフォルト設定を使用。デフォルトはNone。
     
@@ -81,7 +82,14 @@ async def scrape_items(keyword: str, max_pages: int = None, settings: Settings =
                 
             try:
                 await page.wait_for_timeout(random.randint(settings.min_wait_time, settings.max_wait_time))
-                await page.wait_for_selector(settings.item_cell_selector, timeout=settings.page_load_timeout)
+                try:
+                    await page.wait_for_selector(settings.item_cell_selector, timeout=settings.page_load_timeout)
+                except Exception as e:
+                    if page_number != 1:
+                        print(f"このページは商品が見つかりませんでした")
+                        break
+                    raise e  # 1ページ目の場合はエラーを再送出
+
                 await scroll_page(page)
                 items = await page.query_selector_all(settings.item_cell_selector)
 
@@ -121,10 +129,10 @@ async def scrape_items(keyword: str, max_pages: int = None, settings: Settings =
                 save_to_file(
                     data=page_results,
                     keyword=keyword,
-                    page_number=page_number,
+                    filename=filename,
                     is_first_page=(page_number == 1),
                     is_last_page=False,  # 分析結果の追記はitems.pyで行うためFalse
-                    all_items=None  # 分析結果の追記はitems.pyで行うためNone
+                    analysis=None  # 分析結果の追記はitems.pyで行うためNone
                 )
                 
                 if not next_button:
@@ -133,12 +141,7 @@ async def scrape_items(keyword: str, max_pages: int = None, settings: Settings =
                     
                 print("\n⏭️ 次ページに遷移します...")
                 try:
-                    # 次ページボタンをクリックする前に少し待機
-                    await page.wait_for_timeout(3000)
                     await next_button.click()
-                    # ページ遷移後の待機
-                    await page.wait_for_load_state("networkidle", timeout=settings.page_load_timeout)
-                    await page.wait_for_selector(settings.item_cell_selector, timeout=settings.page_load_timeout)
                     page_number += 1
                 except Exception as e:
                     print(f"⚠️ ページ遷移中にエラーが発生: {e}")
