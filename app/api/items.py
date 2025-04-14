@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from pathlib import Path
+import re
 from app.config.settings import get_settings
 from app.config.logger import setup_logger
 from app.services.scraper_service import scrape_and_analyze
@@ -25,14 +26,7 @@ async def search_items(request: SearchRequest):
     """メルカリで商品を検索し、分析結果を返すエンドポイント"""
     try:
         if not request.keyword:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "analysis": None,
-                    "error": "キーワードが指定されていません",
-                    "filename": None
-                }
-            )
+            raise HTTPException(status_code=400, detail="キーワードがありません")
             
         result = await scrape_and_analyze(request.keyword)
         return JSONResponse(
@@ -41,46 +35,40 @@ async def search_items(request: SearchRequest):
         )
         
     except DataValidationError as e:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "analysis": None,
-                "error": str(e),
-                "filename": None
-            }
-        )
+        raise HTTPException(status_code=400, detail=str(e))
+    
     except ScraperError as e:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "analysis": None,
-                "error": str(e),
-                "filename": None
-            }
-        )
+        raise HTTPException(status_code=500, detail=str(e))
+    
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "analysis": None,
-                "error": f"予期せぬエラーが発生しました: {str(e)}",
-                "filename": None
-            }
-        )
+        raise HTTPException(status_code=500, detail=f"予期せぬエラーが発生しました: {str(e)}")
 
 @router.get("/download/{filename}")
 async def download_csv(filename: str):
     """CSVファイルをダウンロードするエンドポイント"""
     try:
+        # ファイル名の検証
+        if not re.match(r'^[\w\-\.]+\.csv$', filename):
+            raise HTTPException(
+                status_code=400,
+                detail="無効なファイル名です"
+            )
+            
         file_path = Path(settings.results_dir) / filename
         
+        # ファイルの存在確認
         if not file_path.exists():
             logger.error(f"ファイルが見つかりません: {filename}")
-            return JSONResponse(
+            raise HTTPException(
                 status_code=404,
-                content={
-                    "error": f"ファイルが見つかりません: {filename}"
-                }
+                detail=f"ファイルが見つかりません: {filename}"
+            )
+            
+        # ファイルサイズの確認（10MB制限）
+        if file_path.stat().st_size > 10 * 1024 * 1024:
+            raise HTTPException(
+                status_code=413,
+                detail="ファイルサイズが大きすぎます"
             )
             
         return FileResponse(
@@ -91,12 +79,11 @@ async def download_csv(filename: str):
                 "Access-Control-Expose-Headers": "Content-Disposition"
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"ファイルのダウンロード中にエラーが発生しました: {str(e)}")
-        return JSONResponse(
+        raise HTTPException(
             status_code=500,
-            content={
-                "error": f"ファイルのダウンロード中にエラーが発生しました: {str(e)}"
-            }
+            detail=f"ファイルのダウンロード中にエラーが発生しました: {str(e)}"
         ) 
-    

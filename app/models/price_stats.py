@@ -65,4 +65,3 @@ class PriceAnalysis:
             median=median_price,
             total=len(sorted_items)
         ) 
-    
