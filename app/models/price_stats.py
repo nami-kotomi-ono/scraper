@@ -24,7 +24,6 @@ class PriceAnalysis:
                 # 価格が数値とカンマのみで構成されているか確認
                 price_without_comma = item['price'].replace(',', '').strip()
                 if not price_without_comma.isdigit():
-                    print(f"⚠️ 商品{item['name']}: 数値とカンマ以外の文字が含まれている")
                     continue  # 数値とカンマ以外の文字が含まれている場合はスキップ
                     
                 # カンマを除去して数値に変換
@@ -32,7 +31,6 @@ class PriceAnalysis:
                 valid_items.append(item)
                 valid_prices.append(price)
             except (ValueError, AttributeError):
-                print(f"⚠️ 商品{item['name']}: 数値変換に失敗")
                 continue  # 不正な価格形式はスキップ
                 
         if not valid_prices:
@@ -57,13 +55,14 @@ class PriceAnalysis:
         return cls(
             lowest={
                 'name': lowest_item['name'],
-                'price': lowest_item['price']  # 元の価格文字列を使用
+                'price': f"¥{lowest_item['price']}"
             },
             highest={
                 'name': highest_item['name'],
-                'price': highest_item['price']  # 元の価格文字列を使用
+                'price': f"¥{highest_item['price']}"
             },
             average=average_price,
             median=median_price,
             total=len(sorted_items)
         ) 
+    

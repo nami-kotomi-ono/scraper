@@ -69,42 +69,75 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 #### 出力
-* レスポンス：
+* 成功時（200）：
 ```json
 {
     "analysis": {
         "lowest_price": {
-            "price": "1000",
+            "price": "1,000",
             "name": "商品名"
         },
         "highest_price": {
-            "price": "100000",
+            "price": "100,000",
             "name": "商品名"
         },
         "average_price": 50000,
         "median_price": 45000,
         "total_items": 100
     },
-    "error": null
+    "error": null,
+    "filename": "20240414_123456.csv"
 }
 ```
-- エラー時は `analysis` が `null` になり、`error` にエラーメッセージが設定されます。
+
+* エラー時：
+  - バリデーションエラー（400）：
+  ```json
+  {
+      "analysis": null,
+      "error": "キーワードが指定されていません",
+      "filename": null
+  }
+  ```
+  - サーバーエラー（500）：
+  ```json
+  {
+      "analysis": null,
+      "error": "スクレイピング処理中にエラーが発生しました",
+      "filename": null
+  }
+  ```
 
 ### CSVファイルダウンロードAPI
 #### 入力
 * HTTPメソッド：GET 
-* エンドポイント: `/api/v1/download/{keyword}.csv`
+* エンドポイント：`/api/v1/download/{filename}`
 
 #### 出力
-* レスポンスヘッダー:
-```json
-{
-    "Content-Type": "text/csv",
-    "Content-Disposition": "attachment; filename*=UTF-8''{keyword}.csv",
-    "Access-Control-Expose-Headers": "Content-Disposition"
-}
-```
-* レスポンスボディ: CSVファイル
+* 成功時（200）：
+  - レスポンスヘッダー:
+  ```json
+  {
+      "Content-Type": "text/csv",
+      "Content-Disposition": "attachment; filename*=UTF-8''{filename}",
+      "Access-Control-Expose-Headers": "Content-Disposition"
+  }
+  ```
+  - レスポンスボディ: CSVファイル
+
+* エラー時：
+  - ファイル未検出（404）：
+  ```json
+  {
+      "error": "ファイルが見つかりません: {filename}"
+  }
+  ```
+  - サーバーエラー（500）：
+  ```json
+  {
+      "error": "ファイルのダウンロード中にエラーが発生しました"
+  }
+  ```
 
 ## テスト実行方法
 

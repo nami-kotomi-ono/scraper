@@ -3,12 +3,14 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from pathlib import Path
 from app.config.settings import get_settings
+from app.config.logger import setup_logger
 from app.services.scraper_service import scrape_and_analyze
 from app.models.exceptions import ScraperError, DataValidationError
 from typing import Optional, Dict, Any
 
 router = APIRouter()
 settings = get_settings()
+logger = setup_logger(__name__)
 
 class SearchRequest(BaseModel):
     keyword: str
@@ -73,6 +75,7 @@ async def download_csv(filename: str):
         file_path = Path(settings.results_dir) / filename
         
         if not file_path.exists():
+            logger.error(f"ファイルが見つかりません: {filename}")
             return JSONResponse(
                 status_code=404,
                 content={
@@ -89,9 +92,11 @@ async def download_csv(filename: str):
             }
         )
     except Exception as e:
+        logger.error(f"ファイルのダウンロード中にエラーが発生しました: {str(e)}")
         return JSONResponse(
             status_code=500,
             content={
                 "error": f"ファイルのダウンロード中にエラーが発生しました: {str(e)}"
             }
         ) 
+    

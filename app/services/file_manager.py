@@ -2,7 +2,9 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import csv
 from .price_analysis import format_price_analysis
+from app.config.logger import setup_logger
 
+logger = setup_logger(__name__)
 def setup_results_dir():
     """結果を保存するディレクトリをセットアップする関数"""
     root_dir = Path(__file__).parent.parent.parent
@@ -11,7 +13,7 @@ def setup_results_dir():
     return results_dir
 
 def cleanup_files():
-    """指定されたキーワードに関連するファイルをクリーンアップ"""
+    """古いファイルをクリーンアップ"""
     results_dir = setup_results_dir()
     now = datetime.now()
         
@@ -25,14 +27,14 @@ def cleanup_files():
     for file in old_files:
         try:
             file.unlink()
-            print(f"ファイルを削除しました: {file}")
+            logger.info(f"ファイルを削除しました: {file}")
         except Exception as e:
-            print(f"ファイル削除エラー: {e}")
+            logger.error(f"ファイル削除エラー: {e}")
 
 def save_to_file(data, keyword, filename, is_first_page=False, is_last_page=False, analysis=None):
     """データをCSVファイルに保存する関数"""
     if not data:
-        print("⚠️ 保存するデータがありません")
+        logger.warning("⚠️ 保存するデータがありません")
         return
         
     results_dir = setup_results_dir()
@@ -63,6 +65,6 @@ def save_to_file(data, keyword, filename, is_first_page=False, is_last_page=Fals
                 writer.writerow(row)
                 
     if is_first_page:
-        print(f"結果ファイルを作成しました: {filepath}")
-    print(f"ページ {filename} の商品情報を保存しました（{len(data)}件）")
+        logger.info(f"結果ファイルを作成しました: {filepath}")
+    logger.info(f"ページ {filename} の商品情報を保存しました（{len(data)}件）")
 

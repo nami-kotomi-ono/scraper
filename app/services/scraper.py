@@ -3,12 +3,14 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 from .file_manager import save_to_file
 from app.config.settings import Settings, get_settings
+from app.config.logger import setup_logger
 from dotenv import load_dotenv
 from typing import List, Dict
 
 # 環境変数の読み込み
 load_dotenv()
 settings = get_settings()
+logger = setup_logger(__name__)
 
 def setup_results_dir() -> Path:
     """結果を保存するディレクトリをセットアップする"""
@@ -75,9 +77,8 @@ async def scrape_items(keyword: str, filename: str, max_pages: int = None, setti
         page_number = 1
         
         while True:
-            # max_pagesが設定されている場合、指定ページ数で終了
             if max_pages is not None and page_number > max_pages:
-                print(f"\n指定されたページ数（{max_pages}ページ）に達したため終了します")
+                logger.info(f"指定されたページ数（{max_pages}ページ）に達したため終了します")
                 break
                 
             try:
@@ -86,26 +87,24 @@ async def scrape_items(keyword: str, filename: str, max_pages: int = None, setti
                     await page.wait_for_selector(settings.item_cell_selector, timeout=settings.page_load_timeout)
                 except Exception as e:
                     if page_number != 1:
-                        print(f"このページは商品が見つかりませんでした")
+                        logger.warning(f"商品セルが見つかりません（ページ {page_number}）")
                         break
-                    raise e  # 1ページ目の場合はエラーを再送出
+                    raise e
 
                 await scroll_page(page)
                 items = await page.query_selector_all(settings.item_cell_selector)
 
                 if not items:
-                    print("商品が見つかりませんでした")
+                    logger.warning("商品が見つかりませんでした")
                     break
                                 
                 # 商品情報を取得
                 page_results = []
                 for index, item in enumerate(items):
                     try:
-                        # 商品名を取得
                         name_element = await item.query_selector(settings.item_name_selector)
                         name = await name_element.inner_text() if name_element else None
                         
-                        # 価格を取得
                         price_element = await item.query_selector(settings.item_price_selector)
                         price = await price_element.inner_text() if price_element else None
                         
@@ -117,10 +116,10 @@ async def scrape_items(keyword: str, filename: str, max_pages: int = None, setti
                             page_results.append(item_data)
                             all_results.append(item_data)
                         else:
-                            print(f"⚠️ 商品{index + 1}: 商品情報の取得に失敗")
+                            logger.warning(f"商品{index + 1}: 商品情報の取得に失敗")
                             
                     except Exception as e:
-                        print(f"⚠️ 商品{index + 1}: 処理中にエラーが発生: {e}")
+                        logger.error(f"商品{index + 1}: 処理中にエラーが発生: {e}")
                 
                 # 次ページボタンを探す
                 next_button = await page.query_selector(settings.next_button_selector)
@@ -131,28 +130,28 @@ async def scrape_items(keyword: str, filename: str, max_pages: int = None, setti
                     keyword=keyword,
                     filename=filename,
                     is_first_page=(page_number == 1),
-                    is_last_page=False,  # 分析結果の追記はitems.pyで行うためFalse
-                    analysis=None  # 分析結果の追記はitems.pyで行うためNone
+                    is_last_page=False,
+                    analysis=None
                 )
                 
                 if not next_button:
-                    print("\nこれ以上ページがありません")
+                    logger.info("これ以上ページがありません")
                     break
                     
-                print("\n⏭️ 次ページに遷移します...")
+                logger.info("次ページに遷移します...")
                 try:
                     await next_button.click()
                     page_number += 1
                 except Exception as e:
-                    print(f"⚠️ ページ遷移中にエラーが発生: {e}")
+                    logger.error(f"ページ遷移中にエラーが発生: {e}")
                     break
                     
             except Exception as e:
-                print(f"⚠️ ページ {page_number} の処理中にエラーが発生: {e}")
+                logger.error(f"ページ {page_number} の処理中にエラーが発生: {e}")
                 break
                 
     except Exception as e:
-        print(f"⚠️ スクレイピング処理中にエラーが発生: {e}")
+        logger.error(f"スクレイピング処理中にエラーが発生: {e}")
         return all_results
         
     finally:
