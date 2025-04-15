@@ -1,3 +1,4 @@
+from datetime import datetime
 import pytest
 import os
 from pathlib import Path
@@ -11,38 +12,36 @@ def test_keyword():
     return "iphone"
 
 @pytest.fixture
-def cleanup_test_files(test_keyword):
-    """テスト後にファイルを削除するフィクスチャ"""
-    yield
-    # テストファイルの削除
-    results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
-    if test_file.exists():
-        test_file.unlink()
+def create_file_name():
+    """ファイル名を作成する"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{timestamp}.csv"
+    return filename
 
 @pytest.mark.asyncio
-async def test_scrape_and_save_single_page(test_keyword, cleanup_test_files):
+async def test_scrape_and_save_single_page(test_keyword, create_file_name):
     """スクレイピングとCSV保存の連携テスト（1ページ）"""
     print("test_scrape_and_save_single_page")
     settings = Settings()
     max_pages = 1
-    
+    filename = create_file_name
     # スクレイピング実行
-    items = await scrape_items(test_keyword, max_pages, settings)
+    items = await scrape_items(test_keyword, filename, max_pages, settings)
     assert len(items) > 0, "商品が見つかりませんでした"
     
     # CSV保存
     save_to_file(
         data=items,
         keyword=test_keyword,
-        page_number=1,
+        filename=filename,
         is_first_page=True,
-        is_last_page=True
+        is_last_page=True,
+        analysis=None
     )
     
     # ファイルの存在確認
     results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
+    test_file = results_dir / filename
     assert test_file.exists()
     
     # ファイル内容の確認
@@ -57,19 +56,20 @@ async def test_scrape_and_save_single_page(test_keyword, cleanup_test_files):
     print("test_scrape_and_save_single_page_success")
 
 @pytest.mark.asyncio
-async def test_scrape_and_save_multiple_pages(test_keyword, cleanup_test_files):
+async def test_scrape_and_save_multiple_pages(test_keyword, create_file_name):
     """スクレイピングとCSV保存の連携テスト（複数ページ）"""
     print("test_scrape_and_save_multiple_pages")
     settings = Settings()
     max_pages = 2
+    filename = create_file_name
 
     # スクレイピング実行
-    items = await scrape_items(test_keyword, max_pages, settings)
+    items = await scrape_items(test_keyword, filename, max_pages, settings)
     assert len(items) > 0, "商品が見つかりませんでした"
 
     # ファイルの存在確認
     results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
+    test_file = results_dir / filename
     assert test_file.exists()
 
     # ファイル内容の確認
@@ -83,14 +83,14 @@ async def test_scrape_and_save_multiple_pages(test_keyword, cleanup_test_files):
         assert len(item_lines) == len(items), f"保存された商品数が一致しません: 期待={len(items)}, 実際={len(item_lines)}"
 
 @pytest.mark.asyncio
-async def test_scrape_and_save_with_analysis(test_keyword, cleanup_test_files):
+async def test_scrape_and_save_with_analysis(test_keyword, create_file_name):
     """スクレイピング、分析、CSV保存の連携テスト"""
     print("test_scrape_and_save_with_analysis")
     settings = Settings()
     max_pages = 1
-    
+    filename = create_file_name
     # スクレイピング実行
-    items = await scrape_items(test_keyword, max_pages, settings)
+    items = await scrape_items(test_keyword, filename, max_pages, settings)
     assert len(items) > 0, "商品が見つかりませんでした"
     
     # 分析結果の作成
@@ -101,7 +101,7 @@ async def test_scrape_and_save_with_analysis(test_keyword, cleanup_test_files):
     save_to_file(
         data=items,
         keyword=test_keyword,
-        page_number=1,
+        filename=filename,
         is_first_page=True,
         is_last_page=True,
         analysis=analysis
@@ -109,7 +109,7 @@ async def test_scrape_and_save_with_analysis(test_keyword, cleanup_test_files):
     
     # ファイルの存在確認
     results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
+    test_file = results_dir / filename
     assert test_file.exists()
     
     # ファイル内容の確認
@@ -128,19 +128,20 @@ async def test_scrape_and_save_with_analysis(test_keyword, cleanup_test_files):
     print("test_scrape_and_save_with_analysis_success")
 
 @pytest.mark.asyncio
-async def test_csv_file_deletion(test_keyword):
+async def test_csv_file_deletion(test_keyword, create_file_name):
     """CSVファイルの削除処理のテスト"""
     print("test_csv_file_deletion")
     settings = Settings()
     max_pages = 1
+    filename = create_file_name
 
     # スクレイピング実行
-    items = await scrape_items(test_keyword, max_pages, settings)
+    items = await scrape_items(test_keyword, filename, max_pages, settings)
     assert len(items) > 0, "商品が見つかりませんでした"
 
     # ファイルの存在確認
     results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
+    test_file = results_dir / filename
     assert test_file.exists()
 
     # ファイルの削除

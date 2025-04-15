@@ -9,8 +9,8 @@ def test_analyze_prices():
         {"name": "商品3", "price": "3,000"}
     ]
     result = analyze_prices(items)
-    assert result.lowest["price"] == "1,000"
-    assert result.highest["price"] == "3,000"
+    assert result.lowest["price"] == "¥1,000"
+    assert result.highest["price"] == "¥3,000"
     assert result.average == 2000
     assert result.median == 2000
     assert result.total == 3
@@ -24,8 +24,8 @@ def test_analyze_prices_single_item():
     """商品が1つの場合の価格分析テスト"""
     items = [{"name": "商品1", "price": "1,000"}]
     result = analyze_prices(items)
-    assert result.lowest["price"] == "1,000"
-    assert result.highest["price"] == "1,000"
+    assert result.lowest["price"] == "¥1,000"
+    assert result.highest["price"] == "¥1,000"
     assert result.average == 1000
     assert result.median == 1000
     assert result.total == 1

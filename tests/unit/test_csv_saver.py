@@ -1,3 +1,4 @@
+from datetime import datetime
 import pytest
 import os
 import csv
@@ -16,17 +17,15 @@ def test_data():
 @pytest.fixture
 def test_keyword():
     """テスト用のキーワードを提供するフィクスチャ"""
-    return "test_iphone"
+    return "iphone"
 
 @pytest.fixture
-def cleanup_test_files(test_keyword):
-    """テスト後にファイルを削除するフィクスチャ"""
-    yield
-    # テストファイルの削除
-    results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
-    if test_file.exists():
-        test_file.unlink()
+def create_file_name():
+    """ファイル名を作成する"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{timestamp}.csv"
+    return filename
+
 
 def test_setup_results_dir():
     """結果ディレクトリのセットアップテスト"""
@@ -39,20 +38,22 @@ def test_setup_results_dir():
     
     print("test_setup_results_dir_success")
 
-def test_save_to_file_first_page(test_data, test_keyword, cleanup_test_files):
+def test_save_to_file_first_page(test_data, test_keyword, create_file_name):
     """初回ページの保存テスト"""
     print("test_save_to_file_first_page")
+    filename = create_file_name
     save_to_file(
         data=test_data,
         keyword=test_keyword,
-        page_number=1,
+        filename=filename,
         is_first_page=True,
-        is_last_page=False
+        is_last_page=False,
+        analysis=None
     )
     
     # ファイルの存在確認
     results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
+    test_file = results_dir / filename
     assert test_file.exists()
     
     # ファイル内容の確認
@@ -71,16 +72,18 @@ def test_save_to_file_first_page(test_data, test_keyword, cleanup_test_files):
     
     print("test_save_to_file_first_page_success")
 
-def test_save_to_file_append_page(test_data, test_keyword, cleanup_test_files):
+def test_save_to_file_append_page(test_data, test_keyword, create_file_name):
     """追加ページの保存テスト"""
     print("test_save_to_file_append_page")
+    filename = create_file_name
     # 初回ページの保存
     save_to_file(
         data=test_data,
         keyword=test_keyword,
-        page_number=1,
+        filename=filename,
         is_first_page=True,
-        is_last_page=False
+        is_last_page=False,
+        analysis=None
     )
     
     # 追加ページの保存
@@ -91,14 +94,15 @@ def test_save_to_file_append_page(test_data, test_keyword, cleanup_test_files):
     save_to_file(
         data=additional_data,
         keyword=test_keyword,
-        page_number=2,
+        filename=filename,
         is_first_page=False,
-        is_last_page=False
+        is_last_page=False,
+        analysis=None
     )
     
     # ファイル内容の確認
     results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
+    test_file = results_dir / filename
     with open(test_file, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         rows = list(reader)
@@ -111,9 +115,10 @@ def test_save_to_file_append_page(test_data, test_keyword, cleanup_test_files):
     
     print("test_save_to_file_append_page_success")
 
-def test_save_to_file_with_analysis(test_data, test_keyword, cleanup_test_files):
+def test_save_to_file_with_analysis(test_data, test_keyword, create_file_name):
     """分析結果を含む保存テスト"""
     print("test_save_to_file_with_analysis")
+    filename = create_file_name
     # 分析結果の作成
     analysis = PriceAnalysis(
         lowest={"name": "iPhone X", "price": "40,000"},
@@ -127,7 +132,7 @@ def test_save_to_file_with_analysis(test_data, test_keyword, cleanup_test_files)
     save_to_file(
         data=test_data,
         keyword=test_keyword,
-        page_number=1,
+        filename=filename,
         is_first_page=True,
         is_last_page=True,
         analysis=analysis
@@ -135,7 +140,7 @@ def test_save_to_file_with_analysis(test_data, test_keyword, cleanup_test_files)
     
     # ファイル内容の確認
     results_dir = setup_results_dir()
-    test_file = results_dir / f"{test_keyword}.csv"
+    test_file = results_dir / filename
     with open(test_file, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         rows = list(reader)
