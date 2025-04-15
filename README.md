@@ -74,11 +74,11 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 {
     "analysis": {
         "lowest_price": {
-            "price": "1,000",
+            "price": "¥1,000",
             "name": "商品名"
         },
         "highest_price": {
-            "price": "100,000",
+            "price": "¥100,000",
             "name": "商品名"
         },
         "average_price": 50000,
