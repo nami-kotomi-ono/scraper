@@ -1,96 +1,88 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
-from app.services.scraper import scrape_items, setup_results_dir
-from app.services.price_analysis import analyze_prices, format_price_analysis_to_json
 from pydantic import BaseModel
-import json
-from app.services.file_manager import save_to_file, cleanup_files
-from urllib.parse import quote, unquote
-from datetime import datetime, timedelta
 from pathlib import Path
-from app.config.settings import Settings, get_settings
+import re
+from app.config.settings import get_settings
+from app.config.logger import setup_logger
+from app.services.scraper_service import scrape_and_analyze
+from app.models.exceptions import ScraperError, DataValidationError
+from typing import Optional, Dict, Any
 
 router = APIRouter()
 settings = get_settings()
+logger = setup_logger(__name__)
 
 class SearchRequest(BaseModel):
     keyword: str
 
 class SearchResponse(BaseModel):
-    analysis: dict | None = None
-    error: str | None = None
+    analysis: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    filename: Optional[str] = None
 
 @router.post("/search", response_model=SearchResponse)
 async def search_items(request: SearchRequest):
     """メルカリで商品を検索し、分析結果を返すエンドポイント"""
     try:
-        # 既存のファイルをクリーンアップ
-        cleanup_files(request.keyword)
-        
-        # スクレイピングを実行
-        all_items = await scrape_items(request.keyword)
-        
-        if not all_items:
-            return {
-                "analysis": None,
-                "error": "商品が見つかりませんでした"
-            }
-        
-        # 価格分析を実行
-        analysis = analyze_prices(all_items)
-        if not analysis:
-            return {
-                "analysis": None,
-                "error": "価格分析に失敗しました"
-            }
+        if not request.keyword:
+            raise HTTPException(status_code=400, detail="キーワードがありません")
             
-        analysis_json = format_price_analysis_to_json(analysis)
-        
-        # 分析結果をCSVに追記
-        save_to_file(
-            data=all_items,
-            keyword=request.keyword,
-            is_last_page=True,
-            analysis=analysis
+        result = await scrape_and_analyze(request.keyword)
+        return JSONResponse(
+            status_code=200,
+            content=result
         )
-            
-        return {
-            "analysis": analysis_json,
-            "error": None
-        }
+        
+    except DataValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    except ScraperError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
     except Exception as e:
-        return {
-            "analysis": None,
-            "error": str(e)
-        }
+        raise HTTPException(status_code=500, detail=f"予期せぬエラーが発生しました: {str(e)}")
 
 @router.get("/download/{filename}")
 async def download_csv(filename: str):
     """CSVファイルをダウンロードするエンドポイント"""
     try:
-        # .csv拡張子を追加
-        if not filename.endswith('.csv'):
-            filename += '.csv'
+        # ファイル名の検証
+        if not re.match(r'^[\w\-\.]+\.csv$', filename):
+            raise HTTPException(
+                status_code=400,
+                detail="無効なファイル名です"
+            )
+            
         file_path = Path(settings.results_dir) / filename
         
+        # ファイルの存在確認
         if not file_path.exists():
+            logger.error(f"ファイルが見つかりません: {filename}")
             raise HTTPException(
                 status_code=404,
                 detail=f"ファイルが見つかりません: {filename}"
             )
-        # ファイル名をURLエンコード
-        encoded_filename = quote(filename)
+            
+        # ファイルサイズの確認（10MB制限）
+        if file_path.stat().st_size > 10 * 1024 * 1024:
+            raise HTTPException(
+                status_code=413,
+                detail="ファイルサイズが大きすぎます"
+            )
             
         return FileResponse(
             path=str(file_path),
             media_type="text/csv",
             headers={
-                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
+                "Content-Disposition": f"attachment; filename*=UTF-8''{filename}",
                 "Access-Control-Expose-Headers": "Content-Disposition"
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Download error: {str(e)}")
+        logger.error(f"ファイルのダウンロード中にエラーが発生しました: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"ファイルのダウンロード中にエラーが発生しました: {str(e)}"

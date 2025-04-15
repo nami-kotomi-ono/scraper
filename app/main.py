@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.items import router as items_router
 from app.config.settings import get_settings
@@ -33,4 +34,26 @@ app.include_router(items_router, prefix="/api/v1", tags=["items"])
 
 @app.get("/")
 async def root():
-    return {"message": "Mercari Scraper API is running"} 
+    return {"message": "Mercari Scraper API is running"}
+
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    # リクエストパスからAPIエンドポイントを判定
+    path = request.url.path
+    
+    if path.startswith("/api/v1/search"):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "analysis": None,
+                "error": exc.detail,
+                "filename": None
+            }
+        )
+    else:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": exc.detail
+            }
+        )
